@@ -148,7 +148,8 @@ const getUserById = async (req, res) => {
                     userId: user.userId,
                     firstName: user.firstName,
                     lastName: user.lastName,
-                    email: user.email
+                    email: user.email,
+                    phone: user.phone
                 }
             }
         })
