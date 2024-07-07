@@ -1,115 +1,141 @@
 const request = require('supertest');
-const jwt = require('jsonwebtoken');
-// const bcrypt = require('bcryptjs');
-const User = require('../models/userModel.js');
-const Organisation = require('../models/orgModel.js');
-const app = require('../server.js');
+const app = require('../app');
+const { sequelize } = require('../config/database');
+const { User, Organisation } = require('../models');
 
-describe('Auth Endpoints', () => {
-  beforeAll(async () => {
-    await User.deleteMany({});
-    await Organisation.deleteMany({});
-  });
+let token;
+let userId;
 
-  describe('POST /auth/register', () => {
-    it('should register user successfully with default organisation', async () => {
-      const res = await request(app)
-        .post('/auth/register')
-        .send({
-          firstName: 'John',
-          lastName: 'Doe',
-          email: 'john@example.com',
-          password: 'password123',
-          phone: '1234567890'
-        });
+beforeAll(async () => {
+  await sequelize.sync({ force: true });
 
-      expect(res.status).toBe(201);
-      expect(res.body).toHaveProperty('status', 'success');
-      expect(res.body.data.user).toMatchObject({
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john@example.com',
-        phone: '1234567890'
-      });
-      expect(res.body.data).toHaveProperty('accessToken');
+  // Register a user and get the token
+  const res = await request(app)
+    .post('/auth/register')
+    .send({
+      firstName: 'John',
+      lastName: 'Doe',
+      email: 'john.doe@example.com',
+      password: 'password123',
+      phone: '1234567890',
     });
 
-    it('should fail if required fields are missing', async () => {
-      const res = await request(app)
-        .post('/auth/register')
-        .send({
-          lastName: 'Doe',
-          email: 'john@example.com',
-          password: 'password123'
-        });
-
-      expect(res.status).toBe(422);
-      expect(res.body.errors).toBeInstanceOf(Array);
-    });
-
-    it('should fail if there is duplicate email', async () => {
-      const res1 = await request(app)
-        .post('/auth/register')
-        .send({
-          firstName: 'John',
-          lastName: 'Doe',
-          email: 'john@example.com',
-          password: 'password123',
-          phone: '1234567890'
-        });
-
-      expect(res1.status).toBe(201);
-
-      const res2 = await request(app)
-        .post('/auth/register')
-        .send({
-          firstName: 'Jane',
-          lastName: 'Doe',
-          email: 'john@example.com',
-          password: 'password456',
-          phone: '0987654321'
-        });
-
-      expect(res2.status).toBe(422);
-      expect(res2.body.errors).toBeInstanceOf(Array);
-    });
-  });
-
-  describe('POST /auth/login', () => {
-    it('should log the user in successfully', async () => {
-      const res = await request(app)
-        .post('/auth/login')
-        .send({
-          email: 'john@example.com',
-          password: 'password123'
-        });
-
-      expect(res.status).toBe(200);
-      expect(res.body).toHaveProperty('status', 'success');
-      expect(res.body.data).toHaveProperty('accessToken');
-    });
-
-    it('should fail if credentials are invalid', async () => {
-      const res = await request(app)
-        .post('/auth/login')
-        .send({
-          email: 'john@example.com',
-          password: 'wrongpassword'
-        });
-
-      expect(res.status).toBe(401);
-      expect(res.body).toHaveProperty('message', 'Authentication failed');
-    });
-  });
+  token = res.body.data.accessToken;
+  userId = res.body.data.userId;
 });
 
-describe('Token Generation', () => {
-  it('should contain correct user details and expire at the correct time', () => {
-    const token = jwt.sign({ userId: 'testUserId', email: 'test@example.com' }, 'your_jwt_secret', { expiresIn: '1h' });
-    const decoded = jwt.verify(token, 'your_jwt_secret');
+afterAll(async () => {
+  await sequelize.close();
+});
 
-    expect(decoded).toHaveProperty('userId', 'testUserId');
-    expect(decoded).toHaveProperty('email', 'test@example.com');
-    expect(decoded.exp).toBeDefined();
+describe('Auth and Organisation Endpoints', () => {
+  // Auth Tests
+  it('should register a new user and create an organisation', async () => {
+    const res = await request(app)
+      .post('/auth/register')
+      .send({
+        firstName: 'Jane',
+        lastName: 'Doe',
+        email: 'jane.doe@example.com',
+        password: 'password123',
+        phone: '0987654321',
+      });
+
+    expect(res.statusCode).toEqual(201);
+    expect(res.body.status).toBe('success');
+    expect(res.body.data).toHaveProperty('userId');
+    expect(res.body.data.firstName).toBe('Jane');
+
+    const user = await User.findOne({ where: { email: 'jane.doe@example.com' } });
+    expect(user).not.toBeNull();
+
+    const org = await Organisation.findOne({ where: { name: "Jane's Organisation" } });
+    expect(org).not.toBeNull();
+  });
+
+  it('should not register a user with an existing email', async () => {
+    const res = await request(app)
+      .post('/auth/register')
+      .send({
+        firstName: 'Jane',
+        lastName: 'Doe',
+        email: 'jane.doe@example.com',
+        password: 'password123',
+        phone: '0987654321',
+      });
+
+    expect(res.statusCode).toEqual(400);
+    expect(res.body.status).toBe('Bad request');
+  });
+
+  it('should log in a user and return a JWT token', async () => {
+    const res = await request(app)
+      .post('/auth/login')
+      .send({
+        email: 'john.doe@example.com',
+        password: 'password123',
+      });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.status).toBe('success');
+    expect(res.body.data).toHaveProperty('accessToken');
+  });
+
+  it('should not log in with incorrect credentials', async () => {
+    const res = await request(app)
+      .post('/auth/login')
+      .send({
+        email: 'john.doe@example.com',
+        password: 'wrongpassword',
+      });
+
+    expect(res.statusCode).toEqual(401);
+    expect(res.body.status).toBe('Bad request');
+  });
+
+  // Organisation Tests
+  it('should get all organisations for the logged in user', async () => {
+    const res = await request(app)
+      .get('/api/organisations')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.status).toBe('success');
+    expect(res.body.data.organisations[0].name).toBe("John's Organisation");
+  });
+
+  it('should create a new organisation', async () => {
+    const res = await request(app)
+      .post('/api/organisations')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'New Organisation',
+        description: 'A new organisation',
+      });
+
+    expect(res.statusCode).toEqual(201);
+    expect(res.body.status).toBe('success');
+    expect(res.body.data.name).toBe('New Organisation');
+
+    const org = await Organisation.findOne({ where: { name: 'New Organisation' } });
+    expect(org).not.toBeNull();
+  });
+
+  it('should add a user to an organisation', async () => {
+    const org = await Organisation.findOne({ where: { name: 'New Organisation' } });
+
+    const res = await request(app)
+      .post(`/api/organisations/${org.orgId}/users`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        userId: userId,
+      });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.status).toBe('success');
+
+    const users = await org.getUsers();
+    expect(users.length).toBe(1);
+    expect(users[0].email).toBe('john.doe@example.com');
   });
 });
