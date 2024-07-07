@@ -1,215 +1,4 @@
-// import request from "supertest";
-// import app from "../server.js";
 
-// let accessToken;
-
-// async function registerUser() {
-//   const userData = {
-//     firstName: "John",
-//     lastName: "Doe",
-//     email: "john.doe@example.com",
-//     password: "password123",
-//     phone: "1234567890",
-//   };
-
-//   await request(app)
-//     .post("/auth/register")
-//     .send(userData)
-//     .expect(201)
-//     .then((response) => {
-//       accessToken = response.body.data.accessToken;
-//     });
-// }
-
-// describe("Authentication Endpoints", () => {
-//   describe("POST /auth/register", () => {
-//     it("should register a new user", async () => {
-//       const newUser = {
-//         firstName: "New",
-//         lastName: "User",
-//         email: "newuser@example.com",
-//         password: "newpassword",
-//         phone: "9876543210",
-//       };
-
-//       const expectedOrgName = `${newUser.firstName}'s Organisation`;
-
-//       const response = await request(app)
-//         .post("/auth/register")
-//         .send(newUser)
-//         .expect(201);
-
-//       const { user, accessToken: receivedAccessToken } = response.body.data;
-//       expect(response.body.status).toBe("success");
-//       expect(response.body.data.accessToken).toBeDefined();
-//       expect(response.body.data.user.email).toBe(newUser.email);
-//       expect(user.userId).toBeTruthy();
-//       expect(user.firstName).toBe(newUser.firstName);
-//       expect(user.lastName).toBe(newUser.lastName);
-//       expect(user.email).toBe(newUser.email);
-//       expect(user.phone).toBe(newUser.phone);
-//       expect(receivedAccessToken).toBeTruthy();
-//       expect(user.organisation.name).toBe(expectedOrgName);
-//     });
-
-//     it("should fail if required fields are missing", async () => {
-//       const userData = {
-//         firstName: "John",
-//         lastName: "Doe",
-//         password: "password123",
-//         phone: "1234567890",
-//       };
-
-//       await request(app)
-//         .post("/auth/register")
-//         .send(userData)
-//         .expect(422)
-//         .expect((res) => {
-//           expect(res.body.status).toBe("Bad request");
-//           expect(res.body.message).toContain("Validation error");
-//         });
-//     });
-
-//     it("should fail if there is a duplicate email", async () => {
-//       await registerUser();
-
-//       const duplicateUserData = {
-//         firstName: "Jane",
-//         lastName: "Smith",
-//         email: "john.doe@example.com",
-//         password: "password456",
-//         phone: "9876543210",
-//       };
-
-//       await request(app)
-//         .post("/auth/register")
-//         .send(duplicateUserData)
-//         .expect(422)
-//         .expect((res) => {
-//           expect(res.body.status).toBe("Bad request");
-//           expect(res.body.message).toContain("User already exists");
-//         });
-//     });
-//   });
-
-//   describe("POST /auth/login", () => {
-//     beforeEach(async () => {
-//       await registerUser();
-//     });
-
-//     it("should log the user in successfully", async () => {
-//       const loginCredentials = {
-//         email: "john.doe@example.com",
-//         password: "password123",
-//       };
-
-//       await request(app)
-//         .post("/auth/login")
-//         .send(loginCredentials)
-//         .expect(200)
-//         .expect((res) => {
-//           const { user, accessToken: receivedAccessToken } = res.body.data;
-//           expect(user.userId).toBeTruthy();
-//           expect(user.firstName).toBe("John");
-//           expect(user.lastName).toBe("Doe");
-//           expect(user.email).toBe("john.doe@example.com");
-//           expect(receivedAccessToken).toBeTruthy();
-//         });
-//     });
-
-//     it("should fail if login credentials are incorrect", async () => {
-//       const incorrectCredentials = {
-//         email: "john.doe@example.com",
-//         password: "incorrectpassword",
-//       };
-
-//       await request(app)
-//         .post("/auth/login")
-//         .send(incorrectCredentials)
-//         .expect(401)
-//         .expect((res) => {
-//           expect(res.body.status).toBe("Bad request");
-//           expect(res.body.message).toBe(
-//             "Authentication failed: User does not exist"
-//           );
-//         });
-//     });
-//   });
-// });
-
-// describe("Organisation Management Endpoints", () => {
-//   beforeEach(async () => {
-//     await registerUser();
-//   });
-
-//   describe("POST /api/organisations", () => {
-//     it("should create a new organisation", async () => {
-//       const newOrgData = {
-//         name: "New Organisation",
-//         description: "Description of New Organisation",
-//       };
-
-//       await request(app)
-//         .post("/api/organisations")
-//         .set("Authorization", `Bearer ${accessToken}`)
-//         .send(newOrgData)
-//         .expect(201)
-//         .expect((res) => {
-//           const organisation = res.body.data;
-
-//           expect(organisation.orgId).toBeTruthy();
-//           expect(organisation.name).toBe(newOrgData.name);
-//           expect(organisation.description).toBe(newOrgData.description);
-//         });
-//     });
-//   });
-
-//   describe("GET /api/organisations/:orgId", () => {
-//     it("should retrieve an organisation by ID", async () => {
-//       let orgId;
-
-//       const newOrgData = {
-//         name: "New Organisation",
-//         description: "Description of New Organisation",
-//       };
-
-//       await request(app)
-//         .post("/api/organisations")
-//         .set("Authorization", `Bearer ${accessToken}`)
-//         .send(newOrgData)
-//         .expect(201)
-//         .then((res) => {
-//           orgId = res.body.data.orgId;
-//         });
-
-//       await request(app)
-//         .get(`/api/organisations/${orgId}`)
-//         .set("Authorization", `Bearer ${accessToken}`)
-//         .expect(200)
-//         .expect((res) => {
-//           const organisation = res.body.data.organisation;
-//           expect(organisation.orgId).toBe(orgId);
-//           expect(organisation.name).toBe(newOrgData.name);
-//           expect(organisation.description).toBe(newOrgData.description);
-//           expect(organisation.users.length).toBe(1);
-//           expect(organisation.users[0].userId).toBeTruthy();
-//         });
-//     });
-
-//     it("should fail if organisation ID does not exist", async () => {
-//       const nonExistentOrgId = "non-existent-org-id";
-
-//       await request(app)
-//         .get(`/api/organisations/${nonExistentOrgId}`)
-//         .set("Authorization", `Bearer ${accessToken}`)
-//         .expect(404)
-//         .expect((res) => {
-//           expect(res.body.status).toBe("Not Found");
-//           expect(res.body.message).toBe("Organisation not found");
-//         });
-//     });
-//   });
-// });
 
 const request = require('supertest');
 const express = require('express');
@@ -223,10 +12,11 @@ const mockUserService = {
   getUserById: jest.fn(),
   getUserOrganisations: jest.fn(),
   createOrganisation: jest.fn(),
+  getOrganisationById: jest.fn(),
   addUserToOrganisation: jest.fn(),
 };
 
-// Create an express app for testing
+// Create an express server for testing
 const app = express();
 app.use(bodyParser.json());
 
@@ -324,6 +114,31 @@ app.get('/api/organisations', authMiddleware, async (req, res) => {
   }
 });
 
+app.get('/api/organisations/:orgId', authMiddleware, async (req, res) => {
+  try {
+    const organisation = await mockUserService.getOrganisationById(req.params.orgId);
+    if (organisation.users.includes(req.user.userId)) {
+      res.status(200).json({
+        status: 'success',
+        message: 'Organisation retrieved successfully',
+        data: organisation,
+      });
+    } else {
+      res.status(403).json({
+        status: 'Forbidden',
+        message: 'Access denied',
+        statusCode: 403,
+      });
+    }
+  } catch (error) {
+    res.status(400).json({
+      status: 'Bad request',
+      message: 'Organisation retrieval unsuccessful',
+      statusCode: 400,
+    });
+  }
+});
+
 app.post('/api/organisations', authMiddleware, async (req, res) => {
   try {
     const organisation = await mockUserService.createOrganisation(req.body);
@@ -355,6 +170,35 @@ app.post('/api/organisations/:orgId/users', authMiddleware, async (req, res) => 
       statusCode: 400,
     });
   }
+});
+describe('Token Generation', () => {
+  it('should generate a token with correct user details and expiration', () => {
+    const user = {
+      userId: '1',
+      email: 'john.doe@example.com',
+    };
+    const token = jwt.sign(user, 'secret', { expiresIn: '1h' });
+    const decodedToken = jwt.verify(token, 'secret');
+
+    expect(decodedToken.userId).toBe(user.userId);
+    expect(decodedToken.email).toBe(user.email);
+    expect(decodedToken.exp).toBeGreaterThan(decodedToken.iat); // Ensure token has an expiration
+    const expirationTime = decodedToken.exp - decodedToken.iat;
+    expect(expirationTime).toBe(3600); // Token should expire in 1 hour (3600 seconds)
+  });
+
+  it('should fail verification for expired tokens', () => {
+    const user = {
+      userId: '1',
+      email: 'john.doe@example.com',
+    };
+    const token = jwt.sign(user, 'secret', { expiresIn: '1s' });
+    
+    // Wait for the token to expire
+    setTimeout(() => {
+      expect(() => jwt.verify(token, 'secret')).toThrow(jwt.JsonWebTokenError);
+    }, 2000);
+  });
 });
 
 describe('Auth and Organisation Endpoints', () => {
@@ -444,7 +288,7 @@ describe('Auth and Organisation Endpoints', () => {
     const res = await request(app)
       .post('/auth/login')
       .send({
-        email: 'john.doe@example.com',
+        email: 'king.doe@example.com',
         password: 'wrongpassword',
       });
 
@@ -537,5 +381,57 @@ describe('Auth and Organisation Endpoints', () => {
     expect(res.body.status).toBe('success');
     expect(res.body.message).toBe('User added to organisation successfully');
     expect(mockUserService.addUserToOrganisation).toHaveBeenCalledTimes(1);
+  });
+});
+
+
+describe('Organisation Access Control', () => {
+  let token;
+
+  beforeAll(() => {
+    // Create a JWT token for authentication
+    token = jwt.sign({ userId: '1', email: 'john.doe@example.com' }, 'secret', { expiresIn: '1h' });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should allow access to an organisation the user belongs to', async () => {
+    const organisation = {
+      orgId: '1',
+      name: "John's Organisation",
+      description: 'A default organisation',
+      users: ['1', '2'],
+    };
+    mockUserService.getOrganisationById.mockResolvedValue(organisation);
+
+    const res = await request(app)
+      .get('/api/organisations/1')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.status).toBe('success');
+    expect(res.body.data).toEqual(organisation);
+    expect(mockUserService.getOrganisationById).toHaveBeenCalledTimes(1);
+  });
+
+  it('should deny access to an organisation the user does not belong to', async () => {
+    const organisation = {
+      orgId: '2',
+      name: "Jane's Organisation",
+      description: 'Another organisation',
+      users: ['2', '3'],
+    };
+    mockUserService.getOrganisationById.mockResolvedValue(organisation);
+
+    const res = await request(app)
+      .get('/api/organisations/2')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.statusCode).toEqual(403);
+    expect(res.body.status).toBe('Forbidden');
+    expect(res.body.message).toBe('Access denied');
+    expect(mockUserService.getOrganisationById).toHaveBeenCalledTimes(1);
   });
 });
