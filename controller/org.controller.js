@@ -168,7 +168,13 @@ const getAllOrganisationOfUser = async (req, res) => {
     res.status(200).json({
       status: 'success',
       message: 'Organisations retrieved successfully',
-      data: { organisations: user.Organisations }
+      data: { organisations: user.Organisations.map((organisation) => {
+        return {
+          orgId: organisation.orgId,
+          name: organisation.name,
+          description: organisation.description
+        }
+      }) }
     });
   } catch (error) {
     res.status(500).json({ status: 'error', message: 'Server error', error: error.message});
@@ -185,7 +191,11 @@ const getASingleOrganisation = async (req, res) => {
     res.status(200).json({
       status: 'success',
       message: 'Organisation retrieved successfully',
-      data: organisation
+      data: {
+        orgId: organisation.orgId,
+        name: organisation.name,
+        description: organisation.description
+      }
     });
   } catch (error) {
     res.status(500).json({ status: 'error', message: 'Server error' });
@@ -196,15 +206,23 @@ const getASingleOrganisation = async (req, res) => {
 const createANewOrganisation = async (req, res) => {
   const { name, description } = req.body;
   try {
+    const user = await User.findOne({ userId: req.userId })
+    if (!user) {
+      return res.status(404).json({ status: 'Not Found', message: 'User not found' });
+    }
     const newOrg = await Organisation.create({ name, description });
-    await req.user.addOrganisation(newOrg);
+    await user.addOrganisation(newOrg);
     res.status(201).json({
       status: 'success',
       message: 'Organisation created successfully',
-      data: newOrg
+      data: {
+        orgId: newOrg.orgId,
+        name: newOrg.name,
+        description: newOrg.description
+      }
     });
   } catch (error) {
-    res.status(400).json({ status: 'Bad Request', message: 'Client error', statusCode: 400 });
+    res.status(400).json({ status: 'Bad Request', message: 'Client error', statusCode: 400, error: error.message });
   }
 };
 
