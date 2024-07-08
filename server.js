@@ -2,13 +2,12 @@ const express = require('express');
 const authRouter = require('./routes/user.route.js');
 const orgRouter = require('./routes/org.route.js');
 const { isAuthenticated } = require('./middleware/auth.js')
-// const { connectToMongoDB } = require('./db/db.js');
 const { sequelize } = require('./db/dbConnect.js')
 const { syncModels } = require('./models/index.js')
+require('dotenv').config()
 const app = express();
-const PORT = 5000
+const PORT = process.env.PORT || 5000
 
-// connectToMongoDB()
 app.use(express.json())
 
 
