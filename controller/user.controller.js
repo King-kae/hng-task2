@@ -168,7 +168,8 @@ const register = async (req, res) => {
     const { firstName, lastName, email, password, phone } = req.body;
     try {
       const hashedPassword = await bcrypt.hash(password, 10);
-      const newUser = await User.create({ firstName, lastName, email, password: hashedPassword, phone });
+      const newUser = new User({ firstName, lastName, email, password: hashedPassword, phone });
+      await newUser.save();
       const orgName = `${firstName}'s Organisation`;
       const newOrg = await Organisation.create({ name: orgName });
       await newUser.addOrganisation(newOrg);

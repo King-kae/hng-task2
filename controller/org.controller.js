@@ -206,7 +206,7 @@ const getASingleOrganisation = async (req, res) => {
 const createANewOrganisation = async (req, res) => {
   const { name, description } = req.body;
   try {
-    const user = await User.findOne({ userId: req.userId })
+    const user = await User.findOne({ where: { userId: req.userId } })
     if (!user) {
       return res.status(404).json({ status: 'Not Found', message: 'User not found' });
     }
